@@ -51,23 +51,21 @@ func (f Frame) name() string {
 
 // Format formats the frame according to the fmt.Formatter interface.
 //
-//    %s    source file
-//    %d    source line
-//    %n    function name
-//    %v    equivalent to %s:%d
+//	%s    source file
+//	%d    source line
+//	%n    function name
+//	%v    equivalent to %s:%d
 //
 // Format accepts flags that alter the printing of some verbs, as follows:
 //
-//    %+s   function name and path of source file relative to the compile time
-//          GOPATH separated by \n\t (<funcname>\n\t<path>)
-//    %+v   equivalent to %+s:%d
+//	%+s   function name and path of source file relative to the compile time
+//	      GOPATH separated by \n\t (<funcname>\n\t<path>)
+//	%+v   equivalent to %+s:%d
 func (f Frame) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 's':
 		switch {
 		case s.Flag('+'):
-			io.WriteString(s, f.name())
-			io.WriteString(s, "\n\t")
 			io.WriteString(s, f.file())
 		default:
 			io.WriteString(s, path.Base(f.file()))
@@ -80,6 +78,9 @@ func (f Frame) Format(s fmt.State, verb rune) {
 		f.Format(s, 's')
 		io.WriteString(s, ":")
 		f.Format(s, 'd')
+		io.WriteString(s, " (")
+		f.Format(s, 'n')
+		io.WriteString(s, ")")
 	}
 }
 
@@ -98,20 +99,21 @@ type StackTrace []Frame
 
 // Format formats the stack of Frames according to the fmt.Formatter interface.
 //
-//    %s	lists source files for each Frame in the stack
-//    %v	lists the source file and line number for each Frame in the stack
+//	%s	lists source files for each Frame in the stack
+//	%v	lists the source file and line number for each Frame in the stack
 //
 // Format accepts flags that alter the printing of some verbs, as follows:
 //
-//    %+v   Prints filename, function, and line number for each Frame in the stack.
+//	%+v   Prints filename, function, and line number for each Frame in the stack.
 func (st StackTrace) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		switch {
 		case s.Flag('+'):
 			for _, f := range st {
-				io.WriteString(s, "\n")
 				f.Format(s, verb)
+				// io.WriteString(s, "\n")
+				io.WriteString(s, "; ")
 			}
 		case s.Flag('#'):
 			fmt.Fprintf(s, "%#v", []Frame(st))

@@ -1,5 +1,6 @@
-基于 `github.com/pkg/errors` 包，增加对 `error code` 的支持，完全兼容 `github.com/pkg/errors`。
+基于 `github.com/marmotedu/errors` 包，只针对`error code`做优化:
+- WithMessage 支持对error_code的多次描述，丰富提示信息
+- 支持error_code的完整调用栈输出
 
-性能跟 `github.com/pkg/errors` 基本持平。
 
-该 errors 包匹配的错误码设计请参考：[marmotedu/sample-code](https://github.com/marmotedu/sample-code/blob/master/README.md)
+该 errors 包使用，可参考：[zhongjin616/sample-code](https://github.com/zhongjin616/sample-code/blob/master/README.md)

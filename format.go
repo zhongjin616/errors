@@ -18,23 +18,26 @@ type formatInfo struct {
 // Format implements fmt.Formatter. https://golang.org/pkg/fmt/#hdr-Printing
 //
 // Verbs:
-//     %s  - Returns the user-safe error string mapped to the error code or
-//       ┊   the error message if none is specified.
-//     %v      Alias for %s
+//
+//	%s  - Returns the user-safe error string mapped to the error code or
+//	  ┊   the error message if none is specified.
+//	%v      Alias for %s
 //
 // Flags:
-//      #      JSON formatted output, useful for logging
-//      -      Output caller details, useful for troubleshooting
-//      +      Output full error stack details, useful for debugging
+//
+//	#      JSON formatted output, useful for logging
+//	-      Output caller details, useful for troubleshooting
+//	+      Output full error stack details, useful for debugging
 //
 // Examples:
-//      %s:    error for internal read B
-//      %v:    error for internal read B
-//      %-v:   error for internal read B - #0 [/home/lk/workspace/golang/src/github.com/marmotedu/iam/main.go:12 (main.main)] (#100102) Internal Server Error
-//      %+v:   error for internal read B - #0 [/home/lk/workspace/golang/src/github.com/marmotedu/iam/main.go:12 (main.main)] (#100102) Internal Server Error; error for internal read A - #1 [/home/lk/workspace/golang/src/github.com/marmotedu/iam/main.go:35 (main.newErrorB)] (#100104) Validation failed
-//      %#v:   [{"error":"error for internal read B"}]
-//      %#-v:  [{"caller":"#0 /home/lk/workspace/golang/src/github.com/marmotedu/iam/main.go:12 (main.main)","error":"error for internal read B","message":"(#100102) Internal Server Error"}]
-//      %#+v:  [{"caller":"#0 /home/lk/workspace/golang/src/github.com/marmotedu/iam/main.go:12 (main.main)","error":"error for internal read B","message":"(#100102) Internal Server Error"},{"caller":"#1 /home/lk/workspace/golang/src/github.com/marmotedu/iam/main.go:35 (main.newErrorB)","error":"error for internal read A","message":"(#100104) Validation failed"}]
+//
+//	%s:    error for internal read B
+//	%v:    error for internal read B
+//	%-v:   error for internal read B - #0 [/home/lk/workspace/golang/src/github.com/marmotedu/iam/main.go:12 (main.main)] (#100102) Internal Server Error
+//	%+v:   error for internal read B - #0 [/home/lk/workspace/golang/src/github.com/marmotedu/iam/main.go:12 (main.main)] (#100102) Internal Server Error; error for internal read A - #1 [/home/lk/workspace/golang/src/github.com/marmotedu/iam/main.go:35 (main.newErrorB)] (#100104) Validation failed
+//	%#v:   [{"error":"error for internal read B"}]
+//	%#-v:  [{"caller":"#0 /home/lk/workspace/golang/src/github.com/marmotedu/iam/main.go:12 (main.main)","error":"error for internal read B","message":"(#100102) Internal Server Error"}]
+//	%#+v:  [{"caller":"#0 /home/lk/workspace/golang/src/github.com/marmotedu/iam/main.go:12 (main.main)","error":"error for internal read B","message":"(#100102) Internal Server Error"},{"caller":"#1 /home/lk/workspace/golang/src/github.com/marmotedu/iam/main.go:35 (main.newErrorB)","error":"error for internal read A","message":"(#100104) Validation failed"}]
 func (w *withCode) Format(state fmt.State, verb rune) {
 	switch verb {
 	case 'v':
@@ -115,6 +118,13 @@ func format(k int, jsonData []map[string]interface{}, str *bytes.Buffer, finfo *
 			data["error"] = finfo.message
 		}
 		jsonData = append(jsonData, data)
+
+		if k == 0 && finfo.stack != nil {
+			callstack := map[string]interface{}{
+				"callstack": fmt.Sprintf("%+v", (*finfo.stack).StackTrace()),
+			}
+			jsonData = append(jsonData, callstack)
+		}
 	} else {
 		if flagDetail || flagTrace {
 			if finfo.stack != nil {
@@ -161,20 +171,6 @@ func buildFormatInfo(e error) *formatInfo {
 	var finfo *formatInfo
 
 	switch err := e.(type) {
-	case *fundamental:
-		finfo = &formatInfo{
-			code:    unknownCoder.Code(),
-			message: err.msg,
-			err:     err.msg,
-			stack:   err.stack,
-		}
-	case *withStack:
-		finfo = &formatInfo{
-			code:    unknownCoder.Code(),
-			message: err.Error(),
-			err:     err.Error(),
-			stack:   err.stack,
-		}
 	case *withCode:
 		coder, ok := codes[err.code]
 		if !ok {
@@ -182,6 +178,11 @@ func buildFormatInfo(e error) *formatInfo {
 		}
 
 		extMsg := coder.String()
+		if extMsg == "" {
+			extMsg = err.msg
+		} else if err.msg != "" {
+			extMsg = fmt.Sprintf("%s: %s", extMsg, err.msg)
+		}
 		if extMsg == "" {
 			extMsg = err.err.Error()
 		}
