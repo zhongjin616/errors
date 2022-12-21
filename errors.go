@@ -126,7 +126,7 @@ func Wrap(err error, code int) error {
 	}
 }
 
-// Spawn 构建一个新的withCode, 将当前的作为cause
+// Spawn 构建一个新的withCode, 将传入的err作为cause
 func Spawn(err error, code int, format string, args ...interface{}) error {
 	if err == nil {
 		return nil

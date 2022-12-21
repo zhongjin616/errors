@@ -8,7 +8,6 @@ import (
 
 var (
 	unknownCoder defaultCoder = defaultCoder{1, http.StatusInternalServerError, "An internal server error occurred", "https://github.com/zhongjin616/errors/README.md"}
-	testCoder    defaultCoder = defaultCoder{2, http.StatusOK, "go test ok", "https://github.com/zhongjin616/errors/README.md"}
 )
 
 // Coder defines an interface for an error code detail information.
@@ -43,7 +42,6 @@ type defaultCoder struct {
 // Code returns the integer code of the coder.
 func (coder defaultCoder) Code() int {
 	return coder.C
-
 }
 
 // String implements stringer. String returns the external error message,
@@ -118,6 +116,26 @@ func ParseCoder(err error) Coder {
 	return unknownCoder
 }
 
+// 返回err的错误码
+func Code(err error) int {
+	if err == nil {
+		return 0
+	}
+	coder := ParseCoder(err)
+
+	return coder.Code()
+}
+
+// 返回err的Http Status
+func HTTPStatus(err error) int {
+	if err == nil {
+		return http.StatusOK
+	}
+	coder := ParseCoder(err)
+
+	return coder.HTTPStatus()
+}
+
 // IsCode reports whether any error in err's chain contains the given error code.
 func IsCode(err error, code int) bool {
 	if v, ok := err.(*withCode); ok {
@@ -137,5 +155,4 @@ func IsCode(err error, code int) bool {
 
 func init() {
 	codes[unknownCoder.Code()] = unknownCoder
-	codes[testCoder.Code()] = testCoder
 }
